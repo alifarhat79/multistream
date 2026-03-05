@@ -1,0 +1,18 @@
+{
+  "name": "MultiStream Live",
+  "short_name": "MultiStream",
+  "description": "Live news streams dashboard",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236366f1'/><text x='50' y='62' text-anchor='middle' font-size='40' font-weight='bold' fill='white'>MS</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
