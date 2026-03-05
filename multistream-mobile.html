@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>MultiStream</title>
+    <style>
+        :root {
+            --bg: #0a0a0f; --bg2: #111118; --bg3: #1a1a26; --bg4: #222230;
+            --border: #2a2a3a; --text: #eeeef4; --sub: #9999b0; --muted: #555570;
+            --accent: #6366f1; --red: #ef4444; --green: #22c55e;
+            --orange: #f59e0b; --cyan: #06b6d4;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg); color: var(--text);
+            min-height: 100vh; min-height: 100dvh;
+        }
+
+        .header {
+            padding: 14px 16px 10px; background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 10;
+        }
+        .h-top { display: flex; align-items: center; justify-content: space-between; }
+        .logo { font-weight: 800; font-size: 18px; color: var(--accent); }
+        .logo span { color: var(--muted); font-weight: 400; }
+        .h-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .h-actions { display: flex; gap: 6px; }
+        .h-btn {
+            background: var(--bg3); border: 1px solid var(--border);
+            color: var(--sub); font-size: 11px; font-weight: 600;
+            padding: 5px 10px; border-radius: 6px; cursor: pointer;
+        }
+        .h-btn:active { background: var(--bg4); }
+        .h-btn.add { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+        .add-panel { display: none; padding: 12px 16px; background: var(--bg2); border-bottom: 1px solid var(--border); }
+        .add-panel.open { display: block; }
+        .add-row { display: flex; gap: 6px; }
+        .add-row input {
+            flex: 1; min-width: 0; background: var(--bg3); border: 1px solid var(--border);
+            color: var(--text); font-size: 14px; padding: 10px 12px; border-radius: 8px; outline: none;
+        }
+        .add-row input:focus { border-color: var(--accent); }
+        .add-go {
+            background: var(--accent); border: none; color: #fff; font-size: 14px;
+            font-weight: 700; padding: 10px 16px; border-radius: 8px; cursor: pointer;
+        }
+        .add-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+        .add-hint em { color: var(--cyan); font-style: normal; }
+        .presets-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+        .preset {
+            background: var(--bg3); border: 1px solid var(--border);
+            color: var(--sub); font-size: 11px; padding: 4px 10px;
+            border-radius: 14px; cursor: pointer;
+        }
+        .preset:active { border-color: var(--accent); color: var(--accent); }
+
+        /* ═══ CHANNELS ═══ */
+        .channels { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+
+        .ch-card {
+            display: flex; align-items: center; gap: 12px;
+            background: var(--bg2); border: 1px solid var(--border);
+            border-radius: 10px; padding: 10px 12px;
+            cursor: pointer; text-decoration: none; color: inherit;
+        }
+        .ch-card:active { background: var(--bg4); border-color: var(--accent); }
+
+        .ch-thumb {
+            width: 80px; height: 45px; border-radius: 6px;
+            background: #000; flex-shrink: 0; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .ch-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .ch-thumb .play {
+            position: absolute; width: 28px; height: 28px;
+            background: rgba(255,0,0,0.85); border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ch-thumb .play::after { content: ''; border: 6px solid transparent; border-left: 9px solid #fff; margin-left: 2px; }
+
+        .ch-web-icon {
+            width: 80px; height: 45px; border-radius: 6px;
+            background: var(--bg3); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; border: 1px solid var(--border);
+        }
+
+        .ch-info { flex: 1; min-width: 0; }
+        .ch-name { font-size: 15px; font-weight: 700; }
+        .ch-meta { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 5px; }
+
+        .badge {
+            font-size: 8px; font-weight: 800; padding: 2px 6px;
+            border-radius: 6px; text-transform: uppercase;
+        }
+        .badge.yt { color: #fff; background: #c00; }
+        .badge.web { color: #fff; background: var(--orange); }
+        .badge.live { color: var(--red); background: rgba(239,68,68,0.15);
+            display: flex; align-items: center; gap: 3px; }
+        .badge.live::before { content: ''; width: 5px; height: 5px; background: var(--red); border-radius: 50%; animation: blink 1.5s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        .del-btn {
+            width: 32px; height: 32px; border-radius: 8px; border: none;
+            background: var(--bg3); color: var(--muted); font-size: 15px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0;
+        }
+        .del-btn:active { background: var(--red); color: #fff; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
+
+        /* ═══ GRID VIEW ═══ */
+        .grid-view .channels {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px;
+        }
+        .grid-view .ch-card {
+            flex-direction: column; padding: 0; gap: 0; overflow: hidden;
+        }
+        .grid-view .ch-thumb, .grid-view .ch-web-icon {
+            width: 100%; height: 0; padding-bottom: 56.25%; position: relative;
+        }
+        .grid-view .ch-thumb img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .grid-view .ch-thumb .play { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+        .grid-view .ch-web-icon { position: relative; }
+        .grid-view .ch-web-icon span { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+        .grid-view .ch-info { padding: 6px 8px; width: 100%; }
+        .grid-view .ch-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .grid-view .ch-meta { font-size: 9px; }
+        .grid-view .del-btn {
+            position: absolute; top: 3px; right: 3px;
+            width: 22px; height: 22px; font-size: 11px;
+            background: rgba(0,0,0,0.6); color: #fff; z-index: 2;
+        }
+
+        .view-toggle {
+            display: flex; background: var(--bg3); border-radius: 6px;
+            border: 1px solid var(--border); overflow: hidden;
+        }
+        .vt-btn {
+            background: none; border: none; color: var(--muted);
+            font-size: 11px; font-weight: 700; padding: 5px 10px; cursor: pointer;
+        }
+        .vt-btn:first-child { border-right: 1px solid var(--border); }
+        .vt-btn.on { background: var(--accent); color: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="h-top">
+        <div>
+            <div class="logo">MULTI<span>STREAM</span></div>
+            <div class="h-sub" id="countLabel">Toca un canal para ver el live</div>
+        </div>
+        <div class="h-actions">
+            <div class="view-toggle">
+                <button class="vt-btn on" data-v="list">☰</button>
+                <button class="vt-btn" data-v="grid">⊞</button>
+            </div>
+            <button class="h-btn add" id="btnToggle">+</button>
+            <button class="h-btn" id="btnReset">↺</button>
+        </div>
+    </div>
+</div>
+
+<div class="add-panel" id="addPanel">
+    <div class="add-row">
+        <input type="url" id="inUrl" placeholder="YouTube URL del live" enterkeyhint="done">
+        <button class="add-go" id="btnAdd">+</button>
+    </div>
+    <div class="add-hint">Pega un link de YouTube o web. Se abre en la <em>app de YouTube</em> al tocar.</div>
+    <div class="presets-row" id="presets"></div>
+</div>
+
+<div class="channels" id="channels"></div>
+
+<script>
+const PRESETS = [
+    { name: "Al Mayadeen", vid: "VQBbWxioQFg" },
+    { name: "Al Araby", vid: "e2RgSa1Wt5o" },
+    { name: "Al Ghad", vid: "4N5jTVWB7vA" },
+    { name: "Al Manar", url: "https://www.almanar.com.lb/live/" },
+    { name: "NBN", url: "https://nbn.com.lb" },
+    { name: "Al Jazeera AR", vid: "bNyUyrR0PHo" },
+    { name: "Al Jazeera EN", vid: "F-POY4Q0QSI" },
+    { name: "France 24 ES", vid: "Y-IbBLz4pCo" },
+    { name: "DW Español", vid: "wBDRBFqzkIM" },
+    { name: "Sky News AR", vid: "XAkMiJmEMYA" },
+    { name: "Al Arabiya", vid: "1Kg8LNDEeaE" },
+    { name: "TRT World", vid: "TV9AjkHWjKA" },
+    { name: "RT Español", vid: "OALyNZw4bqs" },
+    { name: "TeleSUR", vid: "1-K4MFqxF6U" },
+];
+
+const DEFAULTS = [
+    { id: 1, name: "Al Mayadeen", vid: "VQBbWxioQFg" },
+    { id: 2, name: "Al Araby", vid: "e2RgSa1Wt5o" },
+    { id: 3, name: "Al Ghad", vid: "4N5jTVWB7vA" },
+    { id: 4, name: "Al Manar", url: "https://www.almanar.com.lb/live/" },
+];
+
+let chs = [], nid = 100;
+
+function save() { try { localStorage.setItem('ms', JSON.stringify(chs)); } catch(e){} }
+function load() {
+    try { const d = localStorage.getItem('ms'); if(d) { chs = JSON.parse(d); nid = Math.max(...chs.map(c=>c.id),0)+1; return; } } catch(e){}
+    chs = DEFAULTS.map(c=>({...c})); nid = 10; save();
+}
+
+function ytThumb(v) { return `https://img.youtube.com/vi/${v}/mqdefault.jpg`; }
+function ytUrl(v) { return `https://www.youtube.com/watch?v=${v}`; }
+function extractVid(u) {
+    let m;
+    m=u.match(/[?&]v=([a-zA-Z0-9_-]{11})/); if(m) return m[1];
+    m=u.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/); if(m) return m[1];
+    m=u.match(/youtube\.com\/live\/([a-zA-Z0-9_-]+)/); if(m) return m[1];
+    m=u.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/); if(m) return m[1];
+    return null;
+}
+
+function openCh(id) {
+    const c = chs.find(x=>x.id===id); if(!c) return;
+    if(c.vid) window.open(ytUrl(c.vid),'_blank');
+    else if(c.url) window.open(c.url,'_blank');
+}
+
+function delCh(id, e) { e.stopPropagation(); chs=chs.filter(c=>c.id!==id); save(); render(); }
+
+function addCh(name, vid, url) {
+    if(vid && chs.some(c=>c.vid===vid)) return;
+    if(url && chs.some(c=>c.url===url)) return;
+    chs.push({ id: nid++, name, ...(vid?{vid}:{url}) }); save(); render();
+}
+
+// ═══ UI ═══
+document.getElementById('btnToggle').addEventListener('click', () => {
+    const p = document.getElementById('addPanel');
+    p.classList.toggle('open');
+    if(p.classList.contains('open')) document.getElementById('inUrl').focus();
+});
+
+document.getElementById('btnAdd').addEventListener('click', () => {
+    const u = document.getElementById('inUrl').value.trim(); if(!u) return;
+    const v = extractVid(u);
+    addCh(v?'Stream':'Live', v, v?null:u);
+    document.getElementById('inUrl').value = '';
+});
+
+document.getElementById('inUrl').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('btnAdd').click(); });
+
+PRESETS.forEach(p => {
+    const b = document.createElement('button'); b.className='preset'; b.textContent=p.name;
+    b.addEventListener('click', () => addCh(p.name, p.vid||null, p.url||null));
+    document.getElementById('presets').appendChild(b);
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+    if(!confirm('Volver a los canales por defecto?')) return;
+    chs=DEFAULTS.map(c=>({...c})); nid=10; save(); render();
+});
+
+document.querySelectorAll('.vt-btn').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('.vt-btn').forEach(x=>x.classList.remove('on'));
+        b.classList.add('on');
+        document.body.classList.toggle('grid-view', b.dataset.v==='grid');
+        render();
+    });
+});
+
+function render() {
+    const el = document.getElementById('channels');
+    document.getElementById('countLabel').textContent = `${chs.length} canales · toca para ver`;
+    if(!chs.length) { el.innerHTML='<div class="empty-state">Sin canales. Usa + para agregar.</div>'; return; }
+    el.innerHTML = chs.map(c => {
+        const isYt = !!c.vid;
+        return `<div class="ch-card" onclick="openCh(${c.id})">
+            ${isYt
+                ? `<div class="ch-thumb"><img src="${ytThumb(c.vid)}" alt=""><div class="play"></div></div>`
+                : `<div class="ch-web-icon"><span>🌐</span></div>`
+            }
+            <div class="ch-info">
+                <div class="ch-name">${esc(c.name)}</div>
+                <div class="ch-meta">
+                    <span class="badge ${isYt?'yt':'web'}">${isYt?'YouTube':'Web'}</span>
+                    <span class="badge live">LIVE</span>
+                </div>
+            </div>
+            <button class="del-btn" onclick="delCh(${c.id},event)">✕</button>
+        </div>`;
+    }).join('');
+}
+
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+load(); render();
+</script>
+</body>
+</html>
